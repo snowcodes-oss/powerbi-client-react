@@ -33,13 +33,13 @@ export interface EmbedProps {
 
 	// Configuration for embedding the PowerBI entity (Required)
 	embedConfig:
-		| IReportEmbedConfiguration
-		| IDashboardEmbedConfiguration
-		| ITileEmbedConfiguration
-		| IQnaEmbedConfiguration
-		| IVisualEmbedConfiguration
-		| IPaginatedReportLoadConfiguration
-		| IReportCreateConfiguration;
+	| IReportEmbedConfiguration
+	| IDashboardEmbedConfiguration
+	| ITileEmbedConfiguration
+	| IQnaEmbedConfiguration
+	| IVisualEmbedConfiguration
+	| IPaginatedReportLoadConfiguration
+	| IReportCreateConfiguration;
 
 	// Callback method to get the embedded PowerBI entity object (Optional)
 	getEmbeddedComponent?: { (embeddedComponent: Embed): void };
@@ -113,11 +113,19 @@ export class PowerBIEmbed extends React.Component<EmbedProps> {
 		this.powerbi.setSdkInfo(SdkType, SdkWrapperVersion);
 	};
 
-	componentDidMount(): void {
+	private preload(): void {
+		try {
+			console.log("[@snowcodes/powerbi-client-react] Preloading PowerBI resources...");
+			this.powerbi.preload(this.props.embedConfig);
+		} catch (error) {
+			console.warn("[@snowcodes/powerbi-client-react] Preload failed: ", error);
+			console.warn("[@snowcodes/powerbi-client-react] Continuing without preload...");
+		}
+	}
 
+	componentDidMount(): void {
 		// Check if HTML container is available
 		if (this.containerRef.current) {
-
 			// Decide to embed, load or bootstrap
 			if (this.props.embedConfig.accessToken && this.props.embedConfig.embedUrl) {
 				this.embedEntity();
@@ -141,7 +149,7 @@ export class PowerBIEmbed extends React.Component<EmbedProps> {
 		}
 
 		// Re-embed when the current embedConfig differs from the previous embedConfig
-		if(!isEqual(this.props.embedConfig, prevProps.embedConfig)){
+		if (!isEqual(this.props.embedConfig, prevProps.embedConfig)) {
 			this.embedEntity();
 		}
 	};
@@ -174,6 +182,8 @@ export class PowerBIEmbed extends React.Component<EmbedProps> {
 		if (!this.containerRef.current || !this.props.embedConfig.accessToken || !this.props.embedConfig.embedUrl) {
 			return;
 		}
+
+		this.preload();
 
 		// Load when props.phasedEmbedding is true and embed type is report, embed otherwise
 		if (this.props.phasedEmbedding && this.props.embedConfig.type === EmbedType.Report) {
